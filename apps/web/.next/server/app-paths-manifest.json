@@ -1,6 +1,0 @@
-{
-  "/calculations/page": "app/calculations/page.js",
-  "/page": "app/page.js",
-  "/telemetry/page": "app/telemetry/page.js",
-  "/admin/page": "app/admin/page.js"
-}
