@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KR_App Admin Paneli</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #818cf8;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: #1e293b;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #334155;
+        }
+
+        th {
+            color: #94a3b8;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+        }
+
+        tr:hover {
+            background: #334155;
+        }
+
+        .form-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            align-items: flex-end;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            flex: 1;
+        }
+
+        label {
+            font-size: 0.85rem;
+            color: #94a3b8;
+        }
+
+        input {
+            background: #334155;
+            border: 1px solid #475569;
+            color: white;
+            padding: 10px;
+            border-radius: 6px;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #818cf8;
+        }
+
+        button {
+            cursor: pointer;
+            padding: 10px 20px;
+            border-radius: 6px;
+            border: none;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #4f46e5;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #4338ca;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+            padding: 6px 12px;
+            font-size: 0.85rem;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-warning {
+            background: #f59e0b;
+            color: #fff;
+        }
+
+        #message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 6px;
+            display: none;
+        }
+
+        .success {
+            background: #10b981;
+            color: white;
+        }
+
+        .error {
+            background: #ef4444;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Kullanıcı Yönetimi</h1>
+
+        <div id="message"></div>
+
+        <div class="card">
+            <h3 style="margin-top: 0;">Yeni Kullanıcı Ekle</h3>
+            <form id="addUserForm" class="form-group">
+                <div class="input-group">
+                    <label>Kullanıcı Adı</label>
+                    <input type="text" id="username" required placeholder="örn: ahmet">
+                </div>
+                <div class="input-group">
+                    <label>Şifre</label>
+                    <input type="password" id="password" required placeholder="******">
+                </div>
+                <div class="input-group">
+                    <label>Rol</label>
+                    <select id="role"
+                        style="background: #334155; border: 1px solid #475569; color: white; padding: 10px; border-radius: 6px; outline: none;">
+                        <option value="Mekanik">Mekanik</option>
+                        <option value="Elektrik">Elektrik</option>
+                        <option value="Organizasyon">Organizasyon</option>
+                        <option value="Admin">Admin</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-primary">Ekle</button>
+            </form>
+        </div>
+
+        <div class="card" style="margin-top: 20px;">
+            <h3 style="margin-top: 0;">Mevcut Kullanıcılar</h3>
+            <table id="usersTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Kullanıcı Adı</th>
+                        <th>Rol</th>
+                        <th>Durum</th>
+                        <th>İşlem</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Users will be loaded here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8080/api/users'; // Adjust if API URL matches your internal/external Docker networking or localhost
+
+        const messageEl = document.getElementById('message');
+        const usersTableBody = document.querySelector('#usersTable tbody');
+
+        function showMessage(text, type) {
+            messageEl.textContent = text;
+            messageEl.className = type;
+            messageEl.style.display = 'block';
+            setTimeout(() => {
+                messageEl.style.display = 'none';
+            }, 3000);
+        }
+
+        async function fetchUsers() {
+            try {
+                const res = await fetch(API_URL);
+                if (!res.ok) throw new Error('Kullanıcılar getirilemedi');
+                const users = await res.json();
+                renderUsers(users);
+            } catch (err) {
+                console.error(err);
+                showMessage('Kullanıcı listesi yüklenirken hata oluştu', 'error');
+            }
+        }
+
+        function renderUsers(users) {
+            usersTableBody.innerHTML = '';
+            users.forEach(user => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${user.id}</td>
+                    <td>${user.username}</td>
+                    <td><span class="badge" style="background: #475569;">${user.role || '-'}</span></td>
+                    <td>${user.isDefaultPassword ? '<span class="badge badge-warning">Varsayılan Şifre</span>' : '-'}</td>
+                    <td>
+                        ${user.username !== 'admin' ?
+                        `<button onclick="deleteUser(${user.id})" class="btn-danger">Sil</button>` :
+                        '<span style="color: #64748b; font-size: 0.85rem;">Silinemez</span>'}
+                    </td>
+                `;
+                usersTableBody.appendChild(tr);
+            });
+        }
+
+        async function deleteUser(id) {
+            if (!confirm('Bu kullanıcıyı silmek istediğinize emin misiniz?')) return;
+
+            try {
+                const res = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+                if (!res.ok) {
+                    const data = await res.json();
+                    throw new Error(data.error || 'Silme başarısız');
+                }
+                showMessage('Kullanıcı silindi', 'success');
+                fetchUsers();
+            } catch (err) {
+                showMessage(err.message, 'error');
+            }
+        }
+
+        document.getElementById('addUserForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const role = document.getElementById('role').value;
+
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password, role })
+                });
+
+                if (!res.ok) {
+                    const data = await res.json();
+                    throw new Error(data.error || 'Ekleme başarısız');
+                }
+
+                showMessage('Kullanıcı başarıyla eklendi', 'success');
+                document.getElementById('addUserForm').reset();
+                fetchUsers();
+            } catch (err) {
+                showMessage(err.message, 'error');
+            }
+        });
+
+        // Initialize
+        fetchUsers();
+    </script>
+</body>
+
+</html>

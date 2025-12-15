@@ -1,0 +1,66 @@
+services:
+  web:
+    build: ./apps/web
+    container_name: krapp-web
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: "http://localhost:8080"
+      NEXT_PUBLIC_ORCH_URL: "http://localhost:8090"
+      INTERNAL_API_URL: "http://api:8080"
+      INTERNAL_ORCH_URL: "http://orchestrator:8090"
+    depends_on:
+      - api
+      - orchestrator
+
+  api:
+    build: ./apps/api
+    container_name: krapp-api
+    ports:
+      - "8080:8080"
+    environment:
+      ASPNETCORE_URLS: "http://+:8080"
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=krapp_db;Username=admin;Password=password123"
+    depends_on:
+      - postgres
+
+  orchestrator:
+    build: ./apps/orchestrator
+    container_name: krapp-orchestrator
+    ports:
+      - "8090:8090"
+    environment:
+      ASPNETCORE_URLS: "http://+:8090"
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: krapp-postgres
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: krapp_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  calculations:
+    build: ./apps/calculations
+    container_name: krapp-calculations
+    ports:
+      - "8501:8501"
+
+  admin:
+    build: ./apps/admin
+    container_name: krapp-admin
+    ports:
+      - "3002:3002"
+
+  telemetry:
+    build: ./apps/telemetry
+    container_name: krapp-telemetry
+    ports:
+      - "3003:3003"
+
+volumes:
+  postgres_data:
